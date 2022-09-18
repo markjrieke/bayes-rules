@@ -46,3 +46,36 @@ stan_bike_sim %>%
 set.seed(84735)
 stan_bike_sim %>%
   rstanarm::posterior_predict(newdata = data.frame(temp_feel = 75))
+
+# rstanarm::posterior_predict() doesn't work w/a stanfit obj
+
+# pp check (manual)
+# this is a check on the overall distribution of ridership, not ridership on any
+#   individual day/temperature
+# sample of 50 fits for each actual observation
+stan_bike_sim %>%
+  as.data.frame() %>%
+  as_tibble() %>%
+  slice_sample(n = 50) %>%
+  rowid_to_column() %>%
+  mutate(bike_rides = nest(bike_rides, data = everything())) %>%
+  unnest(bike_rides) %>%
+  unnest(data) %>%
+  mutate(mu = beta0 + beta1 * temp_feel,
+         simulated_rides = rnorm(25000, mean = mu, sd = sigma)) %>%
+  select(rowid, temp_feel, rides, simulated_rides) %>%
+  ggplot(aes(x = simulated_rides,
+             group = rowid)) +
+  geom_density(alpha = 0.15,
+               color = "skyblue") +
+  geom_density(data = bike_rides,
+               mapping = aes(x = rides,
+                             group = NULL),
+               size = 2,
+               color = "midnightblue")
+
+
+
+  
+
+
